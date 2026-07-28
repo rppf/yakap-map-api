@@ -1,0 +1,6 @@
+# Wrangler local dev secrets (loaded by `wrangler dev`, NOT by prisma CLI).
+# Keep DATABASE_URL in sync with .env
+DATABASE_URL="postgresql://user:password@host.neon.tech/dbname?sslmode=require"
+
+# Allowed origin for CORS (your yakap-map-web origin). Defaults to * if unset.
+CORS_ORIGIN="http://localhost:5173"

@@ -1,0 +1,31 @@
+{
+  "name": "yakap-map-api",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "generate": "zenstack generate --schema zenstack/schema.zmodel && prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.9.0",
+    "@prisma/adapter-neon": "^6.19.3",
+    "@prisma/client": "^6.19.3",
+    "@zenstackhq/runtime": "^2.22.3",
+    "hono": "^4.12.32",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260727.1",
+    "@types/node": "^26.1.1",
+    "prisma": "^6.19.3",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.114.0",
+    "zenstack": "^2.22.3"
+  }
+}

@@ -1,0 +1,38 @@
+datasource db {
+    provider = 'postgresql'
+    url      = env('DATABASE_URL')
+}
+
+plugin prisma {
+    provider = '@core/prisma'
+    output   = '../prisma/schema.prisma'
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+// Aligned with the existing `health_facilities` table in Neon (see prisma db pull).
+// The PostGIS `coordinates` geography column is not queryable via Prisma — use the
+// plain longitude/latitude columns for geo filtering instead.
+model HealthFacility {
+    id                    BigInt   @id @default(autoincrement())
+    name                  String   @map('health_facility_name') @db.VarChar(255)
+    region                String?  @db.VarChar(100)
+    area                  String?  @db.VarChar(100)
+    municipality          String?  @db.VarChar(150)
+    street                String?
+    email                 String?  @db.VarChar(255)
+    withYakapPrescription Boolean? @default(false) @map('with_yakap_prescription')
+    expirationDate        DateTime? @db.Date @map('expiration_date')
+    coordinates           Unsupported("geography")?
+    createdAt             DateTime? @default(now()) @db.Timestamptz(6) @map('created_at')
+    updatedAt             DateTime? @default(now()) @db.Timestamptz(6) @map('updated_at')
+    longitude             Float?   @db.Real
+    latitude              Float?   @db.Real
+
+    // Public read-only API: allow reads to everyone, deny all writes.
+    @@allow('read', true)
+
+    @@map('health_facilities')
+}
