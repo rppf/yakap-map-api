@@ -4,8 +4,9 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-07-01",
   "compatibility_flags": ["nodejs_compat"],
+  "preview_urls": true,
   "vars": {
-    "CORS_ORIGIN": "*"
+    "CORS_ORIGIN": "https://yakap-map-web.vercel.app"
   },
   "observability": {
     "enabled": true

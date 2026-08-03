@@ -1,9 +1,9 @@
-import type { HealthFacility } from '@prisma/client'
+import type { HealthFacility } from '../../zenstack/models'
 
 /**
  * Public API shape of a health facility. `id` is serialized as a number
  * (BigInt is not JSON-serializable); the PostGIS `coordinates` column is
- * not exposed by Prisma Client and thus never leaves the API.
+ * not queryable by the ORM (Unsupported type) and thus never leaves the API.
  */
 export type HealthFacilityDTO = Omit<HealthFacility, 'id' | 'coordinates'> & { id: number }
 

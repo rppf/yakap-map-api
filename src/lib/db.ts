@@ -1,17 +1,20 @@
-import { PrismaNeonHTTP } from '@prisma/adapter-neon'
-import { PrismaClient } from '@prisma/client'
-import { enhance } from '@zenstackhq/runtime'
+import { neon } from '@neondatabase/serverless'
+import { ZenStackClient } from '@zenstackhq/orm'
+import { PolicyPlugin } from '@zenstackhq/plugin-policy'
+import { NeonDialect } from 'kysely-neon'
+import { schema } from '../../zenstack/schema'
 
 /**
- * Creates a request-scoped enhanced Prisma client backed by Neon's
- * serverless HTTP driver (stateless fetch-based queries — a good fit for
- * this read-only API; no interactive transactions needed).
- * `enhance` applies the access policies from zenstack/schema.zmodel.
+ * Creates a request-scoped ZenStack ORM client backed by Neon's serverless
+ * HTTP driver via kysely-neon's NeonDialect (stateless fetch-based queries —
+ * a good fit for this read-only API; no transactions needed).
+ * `PolicyPlugin` enforces the access policies from zenstack/schema.zmodel.
  */
 export function getDb(databaseUrl: string) {
-  const adapter = new PrismaNeonHTTP(databaseUrl, { arrayMode: false, fullResults: true })
-  const prisma = new PrismaClient({ adapter })
-  return enhance(prisma)
+  return new ZenStackClient(schema, {
+    dialect: new NeonDialect({ neon: neon(databaseUrl) }),
+    plugins: [new PolicyPlugin()],
+  })
 }
 
 export type Db = ReturnType<typeof getDb>

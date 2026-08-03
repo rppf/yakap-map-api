@@ -1,4 +1,5 @@
-import type { HealthFacility, Prisma } from '@prisma/client'
+import type { HealthFacilityWhereInput } from '../../../zenstack/input'
+import type { HealthFacility } from '../../../zenstack/models'
 import { getDb } from '../../lib/db'
 import type { HealthFacilityDTO, PaginatedResult } from '../../types'
 import type { ListFacilitiesQuery } from './facilities.schema'
@@ -13,7 +14,7 @@ export async function listFacilities(
 ): Promise<PaginatedResult<HealthFacilityDTO>> {
   const db = getDb(databaseUrl)
 
-  const where: Prisma.HealthFacilityWhereInput = {
+  const where: HealthFacilityWhereInput = {
     ...(query.bbox && {
       latitude: { gte: query.bbox.minLat, lte: query.bbox.maxLat },
       longitude: { gte: query.bbox.minLng, lte: query.bbox.maxLng },

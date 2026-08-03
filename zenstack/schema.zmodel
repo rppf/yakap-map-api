@@ -3,13 +3,8 @@ datasource db {
     url      = env('DATABASE_URL')
 }
 
-plugin prisma {
-    provider = '@core/prisma'
-    output   = '../prisma/schema.prisma'
-}
-
-generator client {
-    provider = "prisma-client-js"
+plugin policy {
+    provider = "@zenstackhq/plugin-policy"
 }
 
 // Aligned with the existing `health_facilities` table in Neon (see prisma db pull).
