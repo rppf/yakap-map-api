@@ -98,6 +98,12 @@ export class SchemaType implements SchemaDef {
                     type: "Float",
                     optional: true,
                     attributes: [{ name: "@db.Real" }] as readonly AttributeApplication[]
+                },
+                contactNumbers: {
+                    name: "contactNumbers",
+                    type: "String",
+                    optional: true,
+                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("contact_numbers") }] }] as readonly AttributeApplication[]
                 }
             },
             attributes: [

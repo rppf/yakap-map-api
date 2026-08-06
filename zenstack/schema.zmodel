@@ -25,6 +25,7 @@ model HealthFacility {
     updatedAt             DateTime? @default(now()) @db.Timestamptz(6) @map('updated_at')
     longitude             Float?   @db.Real
     latitude              Float?   @db.Real
+    contactNumbers        String?  @map('contact_numbers')
 
     // Public read-only API: allow reads to everyone, deny all writes.
     @@allow('read', true)
