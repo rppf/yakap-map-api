@@ -70,7 +70,7 @@ Notes:
 ## Endpoints
 
 - `GET /health`
-- `GET /api/facilities` — query params: `bbox=minLng,minLat,maxLng,maxLat` (Mapbox bounds order), `q` (name/street/municipality), `region`, `area`, `limit` (default 50, max 200), `offset`. Returns `{ data, meta: { total, limit, offset } }`.
+- `GET /api/facilities` — query params: `bbox=minLng,minLat,maxLng,maxLat` (Mapbox bounds order), `q` (name/street/municipality), `region`, `area`, `limit` (default 50, max 1000), `offset`. Returns `{ data, meta: { total, limit, offset } }`. Responses are cached (Cloudflare Cache API + `Cache-Control: public, max-age=3600`) per URL for 1 hour.
 - `GET /api/facilities/:id`
 
 Backed by the existing `health_facilities` table in Neon. The PostGIS `coordinates`

@@ -33,7 +33,7 @@ export async function listFacilities(
   const [rows, total] = await Promise.all([
     db.healthFacility.findMany({
       where,
-      orderBy: { name: 'asc' },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
       take: query.limit,
       skip: query.offset,
     }),

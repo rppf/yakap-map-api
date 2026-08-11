@@ -27,7 +27,7 @@ export const listFacilitiesQuerySchema = z.object({
   q: z.string().trim().min(1).max(100).optional(),
   region: z.string().trim().min(1).max(100).optional(),
   area: z.string().trim().min(1).max(100).optional(),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  limit: z.coerce.number().int().min(1).max(1000).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 })
 

@@ -37,4 +37,5 @@ Production secret: `wrangler secret put DATABASE_URL`. Never commit credentials.
 ## Conventions
 
 - One directory per resource under `src/routes/` with a trio: `<name>.route.ts` (Hono + `zValidator`), `<name>.schema.ts` (zod), `<name>.service.ts` (DB access). Mount routes by chaining `.route()` in `src/app.ts` — the chained builder type is exported as `AppType` for `hono/client` RPC consumers (yakap-map-web); splitting into separate `app.route()` statements breaks the RPC type.
+- `facilities.route.ts` uses `hono/cache` (Cloudflare Cache API, `cacheName: 'yakap-map-api'`) with `Cache-Control: public, max-age=3600` — all `/api/facilities` GET responses are cached at the edge for 1h. Facility data changes rarely (manual imports), so if you deploy new data expect up to 1h of stale responses.
 - Worker env bindings are hand-typed in `src/env.ts` (`Bindings`) — update it when adding vars/secrets.

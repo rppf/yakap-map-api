@@ -1,4 +1,5 @@
 import { zValidator } from '@hono/zod-validator'
+import { cache } from 'hono/cache'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import type { Bindings } from '../../env'
@@ -6,6 +7,12 @@ import { facilityIdParamSchema, listFacilitiesQuerySchema } from './facilities.s
 import { getFacilityById, listFacilities } from './facilities.service'
 
 export const facilitiesRoute = new Hono<{ Bindings: Bindings }>()
+  .use(
+    cache({
+      cacheName: 'yakap-map-api',
+      cacheControl: 'public, max-age=3600',
+    })
+  )
   .get(
     '/',
     zValidator('query', listFacilitiesQuerySchema, (result, c) => {
