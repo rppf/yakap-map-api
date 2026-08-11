@@ -4,3 +4,9 @@ dist/
 .dev.vars
 .env
 *.log
+
+# armada:start
+/armada/
+/.opencode/
+/opencode.json
+# armada:end
