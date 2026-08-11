@@ -4,8 +4,18 @@ import { getDb } from '../../lib/db'
 import type { HealthFacilityDTO, PaginatedResult } from '../../types'
 import type { ListFacilitiesQuery } from './facilities.schema'
 
+function normalizeRegion(region: string | null): string | null {
+  if (region == null) return null
+  if (/^\d+$/.test(region)) return `Region ${region}`
+  return region
+}
+
+function dbRegion(input: string): string {
+  return input.replace(/^Region\s+/i, '')
+}
+
 function toDTO(facility: HealthFacility): HealthFacilityDTO {
-  return { ...facility, id: Number(facility.id) }
+  return { ...facility, id: Number(facility.id), region: normalizeRegion(facility.region) }
 }
 
 export async function listFacilities(
@@ -19,7 +29,7 @@ export async function listFacilities(
       latitude: { gte: query.bbox.minLat, lte: query.bbox.maxLat },
       longitude: { gte: query.bbox.minLng, lte: query.bbox.maxLng },
     }),
-    ...(query.region && { region: { equals: query.region, mode: 'insensitive' } }),
+    ...(query.region && { region: { equals: dbRegion(query.region), mode: 'insensitive' } }),
     ...(query.area && { area: { equals: query.area, mode: 'insensitive' } }),
     ...(query.q && {
       OR: [
