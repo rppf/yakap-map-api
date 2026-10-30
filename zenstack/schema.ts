@@ -104,6 +104,12 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     optional: true,
                     attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("contact_numbers") }] }] as readonly AttributeApplication[]
+                },
+                facilityTags: {
+                    name: "facilityTags",
+                    type: "FacilityTag",
+                    array: true,
+                    relation: { opposite: "facility" }
                 }
             },
             attributes: [
@@ -113,6 +119,93 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "BigInt" }
+            }
+        },
+        Tag: {
+            name: "Tag",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "BigInt",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                },
+                name: {
+                    name: "name",
+                    type: "String",
+                    attributes: [{ name: "@db.VarChar", args: [{ name: "x", value: ExpressionUtils.literal(100) }] }] as readonly AttributeApplication[]
+                },
+                slug: {
+                    name: "slug",
+                    type: "String",
+                    unique: true,
+                    attributes: [{ name: "@unique" }, { name: "@db.VarChar", args: [{ name: "x", value: ExpressionUtils.literal(100) }] }] as readonly AttributeApplication[]
+                },
+                description: {
+                    name: "description",
+                    type: "String",
+                    optional: true
+                },
+                facilityTags: {
+                    name: "facilityTags",
+                    type: "FacilityTag",
+                    array: true,
+                    relation: { opposite: "tag" }
+                }
+            },
+            attributes: [
+                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("read") }, { name: "condition", value: ExpressionUtils.literal(true) }] },
+                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("tags") }] }
+            ] as readonly AttributeApplication[],
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "BigInt" },
+                slug: { type: "String" }
+            }
+        },
+        FacilityTag: {
+            name: "FacilityTag",
+            fields: {
+                facilityId: {
+                    name: "facilityId",
+                    type: "BigInt",
+                    id: true,
+                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("facility_id") }] }] as readonly AttributeApplication[],
+                    foreignKeyFor: [
+                        "facility"
+                    ] as readonly string[]
+                },
+                tagId: {
+                    name: "tagId",
+                    type: "BigInt",
+                    id: true,
+                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("tag_id") }] }] as readonly AttributeApplication[],
+                    foreignKeyFor: [
+                        "tag"
+                    ] as readonly string[]
+                },
+                facility: {
+                    name: "facility",
+                    type: "HealthFacility",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("facilityId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "facilityTags", fields: ["facilityId"], references: ["id"] }
+                },
+                tag: {
+                    name: "tag",
+                    type: "Tag",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("tagId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "facilityTags", fields: ["tagId"], references: ["id"] }
+                }
+            },
+            attributes: [
+                { name: "@@id", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("facilityId"), ExpressionUtils.field("tagId")]) }] },
+                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("read") }, { name: "condition", value: ExpressionUtils.literal(true) }] },
+                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("facility_tags") }] }
+            ] as readonly AttributeApplication[],
+            idFields: ["facilityId", "tagId"],
+            uniqueFields: {
+                facilityId_tagId: { facilityId: { type: "BigInt" }, tagId: { type: "BigInt" } }
             }
         }
     } as const;

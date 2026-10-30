@@ -1,32 +1,32 @@
 import { z } from 'zod'
 
 /**
- * Bounding box in "minLng,minLat,maxLng,maxLat" order (same convention as
- * Mapbox GL's `map.getBounds()`).
+ * Comma-separated list of tag slugs. Multiple slugs are combined with AND
+ * semantics — a facility must carry every listed tag to match.
  */
-const bboxSchema = z
+const tagsSchema = z
   .string()
-  .transform((value) => value.split(',').map(Number))
-  .pipe(
-    z
-      .tuple([
-        z.number().min(-180).max(180), // minLng
-        z.number().min(-90).max(90), // minLat
-        z.number().min(-180).max(180), // maxLng
-        z.number().min(-90).max(90), // maxLat
-      ])
-      .refine(([minLng, minLat, maxLng, maxLat]) => minLng < maxLng && minLat < maxLat, {
-        message: 'bbox must be ordered as minLng,minLat,maxLng,maxLat',
-      })
-      .transform(([minLng, minLat, maxLng, maxLat]) => ({ minLng, minLat, maxLng, maxLat }))
+  .trim()
+  .min(1)
+  .max(500)
+  .transform((value) =>
+    [...new Set(value.split(',').map((slug) => slug.trim()).filter((slug) => slug.length > 0))]
   )
+  .pipe(z.array(z.string().min(1).max(100)).min(1))
+
+/**
+ * Strict boolean query param: accepts only "true" or "false" (case-sensitive);
+ * anything else is rejected with a 400. Omit to apply no filter.
+ */
+const withPrescriptionSchema = z
+  .enum(['true', 'false'])
+  .transform((value) => value === 'true')
   .optional()
 
 export const listFacilitiesQuerySchema = z.object({
-  bbox: bboxSchema,
+  tags: tagsSchema.optional(),
   q: z.string().trim().min(1).max(100).optional(),
-  region: z.string().trim().min(1).max(100).optional(),
-  area: z.string().trim().min(1).max(100).optional(),
+  withPrescription: withPrescriptionSchema,
   limit: z.coerce.number().int().min(1).max(1000).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 })

@@ -8,3 +8,5 @@
 import { type SchemaType as $Schema } from "./schema";
 import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
 export type HealthFacility = $ModelResult<$Schema, "HealthFacility">;
+export type Tag = $ModelResult<$Schema, "Tag">;
+export type FacilityTag = $ModelResult<$Schema, "FacilityTag">;
