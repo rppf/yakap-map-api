@@ -1,8 +1,12 @@
-import type { HealthFacilityWhereInput } from '../../../zenstack/input'
-import type { HealthFacility } from '../../../zenstack/models'
+import type { HealthFacilityGetPayload, HealthFacilityWhereInput } from '../../../zenstack/input'
+import type { Tag } from '../../../zenstack/models'
 import { getDb } from '../../lib/db'
-import type { HealthFacilityDTO, PaginatedResult } from '../../types'
+import type { HealthFacilityDTO, PaginatedResult, TagDTO } from '../../types'
 import type { ListFacilitiesQuery } from './facilities.schema'
+
+type FacilityWithTags = HealthFacilityGetPayload<{
+  include: { facilityTags: { include: { tag: true } } }
+}>
 
 function normalizeRegion(region: string | null): string | null {
   if (region == null) return null
@@ -10,12 +14,18 @@ function normalizeRegion(region: string | null): string | null {
   return region
 }
 
-function dbRegion(input: string): string {
-  return input.replace(/^Region\s+/i, '')
+function toTagDTO(tag: Tag): TagDTO {
+  return { id: Number(tag.id), name: tag.name, slug: tag.slug }
 }
 
-function toDTO(facility: HealthFacility): HealthFacilityDTO {
-  return { ...facility, id: Number(facility.id), region: normalizeRegion(facility.region) }
+function toDTO(facility: FacilityWithTags): HealthFacilityDTO {
+  const { facilityTags, ...rest } = facility
+  return {
+    ...rest,
+    id: Number(facility.id),
+    region: normalizeRegion(facility.region),
+    tags: facilityTags.map((link) => toTagDTO(link.tag)),
+  }
 }
 
 export async function listFacilities(
@@ -25,18 +35,18 @@ export async function listFacilities(
   const db = getDb(databaseUrl)
 
   const where: HealthFacilityWhereInput = {
-    ...(query.bbox && {
-      latitude: { gte: query.bbox.minLat, lte: query.bbox.maxLat },
-      longitude: { gte: query.bbox.minLng, lte: query.bbox.maxLng },
-    }),
-    ...(query.region && { region: { equals: dbRegion(query.region), mode: 'insensitive' } }),
-    ...(query.area && { area: { equals: query.area, mode: 'insensitive' } }),
     ...(query.q && {
       OR: [
         { name: { contains: query.q, mode: 'insensitive' } },
         { street: { contains: query.q, mode: 'insensitive' } },
         { municipality: { contains: query.q, mode: 'insensitive' } },
       ],
+    }),
+    ...(query.tags && {
+      AND: query.tags.map((slug) => ({ facilityTags: { some: { tag: { slug } } } })),
+    }),
+    ...(query.withPrescription !== undefined && {
+      withYakapPrescription: query.withPrescription,
     }),
   }
 
@@ -46,6 +56,7 @@ export async function listFacilities(
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
       take: query.limit,
       skip: query.offset,
+      include: { facilityTags: { include: { tag: true } } },
     }),
     db.healthFacility.count({ where }),
   ])
@@ -61,6 +72,9 @@ export async function getFacilityById(
   id: bigint
 ): Promise<HealthFacilityDTO | null> {
   const db = getDb(databaseUrl)
-  const row = await db.healthFacility.findUnique({ where: { id } })
+  const row = await db.healthFacility.findUnique({
+    where: { id },
+    include: { facilityTags: { include: { tag: true } } },
+  })
   return row ? toDTO(row) : null
 }

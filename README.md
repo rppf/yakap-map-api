@@ -1,6 +1,6 @@
 # yakap-map-api
 
-The API of YAKAP Map — accredited PhilHealth YAKAP facilities, served from a Cloudflare Worker.
+The API of YAKAP — accredited PhilHealth YAKAP facilities, served from a Cloudflare Worker as a tag-based directory (no map, no geographic visualization, no bounding-box filtering).
 
 ## Stack
 
@@ -21,6 +21,7 @@ src/
   middleware/            # CORS, error handler
   routes/health.ts       # GET /health
   routes/facilities/     # GET /api/facilities, GET /api/facilities/:id
+  routes/tags/           # GET /api/tags
 ```
 
 ## Setup
@@ -70,13 +71,111 @@ Notes:
 ## Endpoints
 
 - `GET /health`
-- `GET /api/facilities` — query params: `bbox=minLng,minLat,maxLng,maxLat` (Mapbox bounds order), `q` (name/street/municipality), `region`, `area`, `limit` (default 50, max 1000), `offset`. Returns `{ data, meta: { total, limit, offset } }`. Responses are cached (Cloudflare Cache API + `Cache-Control: public, max-age=3600`) per URL for 1 hour.
-- `GET /api/facilities/:id`
+- `GET /api/facilities` — directory listing of facilities. Query params:
+  - `tags=slug1,slug2` — comma-separated tag slugs; **AND semantics** (a facility must carry *every* listed tag to match).
+  - `withPrescription=true|false` — filter on the `withYakapPrescription` column. Accepts **only** `true` or `false` (anything else returns 400); omit to apply no filter. `meta.total` reflects the filter.
+  - `q` — free-text search over `name`, `street`, `municipality`.
+  - `limit` (default 50, max 1000), `offset` (default 0).
+  - Returns `{ data: Facility[], meta: { total, limit, offset } }`. Each facility includes a `tags` array: `tags: [{ id, name, slug }]`.
+  - **Deprecated (ignored):** `bbox`, `region`, `area` — accepted but silently ignored (the directory is tag-based, not map-based). They return 200 with no effect and are safe to stop sending.
+- `GET /api/facilities/:id` — single facility (includes `tags`).
+- `GET /api/tags` — all tags with facility counts. Query params:
+  - `q` — search over `name` and `slug`.
+  - Returns `{ data: [{ id, name, slug, description, facilityCount }] }`.
 
-Backed by the existing `health_facilities` table in Neon. The PostGIS `coordinates`
-column is not queryable by the ORM (`Unsupported` type) — geo filtering uses the plain
-`longitude`/`latitude` columns. `id` is a BigInt in the DB and is serialized as a
-number in responses.
+Responses are cached (Cloudflare Cache API + `Cache-Control: public, max-age=3600`) per URL for 1 hour.
+
+### Facility response shape
+
+```jsonc
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Sample Facility",
+      "region": "Region 1",
+      "area": null,
+      "municipality": "Sample Town",
+      "street": "123 Sample St",
+      "email": "sample@example.com",
+      "withYakapPrescription": true,
+      "expirationDate": "2026-12-31",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "longitude": 120.98,
+      "latitude": 14.6,
+      "contactNumbers": "0917-000-0000",
+      "tags": [
+        { "id": 1, "name": "Accredited", "slug": "accredited" }
+      ]
+    }
+  ],
+  "meta": { "total": 100, "limit": 50, "offset": 0 }
+}
+```
+
+Address/location columns (`region`, `area`, `municipality`, `street`,
+`longitude`, `latitude`) are retained in the DB and returned in responses, but
+they no longer drive list filtering. The PostGIS `coordinates` column is not
+queryable by the ORM (`Unsupported` type) and never leaves the API. `id` is a
+BigInt in the DB and is serialized as a number in responses.
+
+## Tag system
+
+Tags live in the `tags` table and link to facilities via the `facility_tags`
+join table (see `zenstack/schema.zmodel`). The tables are created outside this
+repo; `db/tags.sql` is a reference script that creates both tables and seeds
+sample tags + associations.
+
+## Apply migrations (database setup)
+
+The `tags` and `facility_tags` tables are created and seeded by `db/tags.sql`,
+which is **not** run automatically. The schema code compiles even when these
+tables are missing, so a passing `pnpm typecheck` does **not** prove the
+database is set up — a missing table only surfaces at runtime as Prisma error
+`P2021` (HTTP 500 on every endpoint).
+
+Apply it to **every** environment (dev, staging, production) before the first
+deploy there — not just local dev.
+
+CLI (requires `psql`; use the same `DATABASE_URL` as your Worker secret):
+
+```bash
+psql "$DATABASE_URL" -f db/tags.sql
+```
+
+Neon dashboard alternative: open the project's **SQL Editor** and run the
+contents of `db/tags.sql`. It is idempotent (safe to re-run).
+
+Verify success by checking the seeded tags and their counts:
+
+```sql
+SELECT t.slug, COUNT(ft.facility_id) AS facility_count
+FROM tags t
+LEFT JOIN facility_tags ft ON ft.tag_id = t.id
+GROUP BY t.id, t.slug
+ORDER BY t.slug;
+```
+
+Expect 7 tags, each with a non-zero count (current dev Neon after backfill):
+
+| slug              | facilityCount |
+| ----------------- | ------------- |
+| accredited        | 251           |
+| birthing-home     | 17            |
+| clinic            | 25            |
+| health-center     | 31            |
+| hospital          | 83            |
+| pharmacy          | 1             |
+| rural-health-unit | 121           |
+
+## Deploy checklist
+
+1. `pnpm generate` — if `zenstack/schema.zmodel` changed.
+2. `psql "$DATABASE_URL" -f db/tags.sql` (or Neon SQL Editor) — apply/verify the DB schema.
+3. `pnpm typecheck` — must pass, but does not replace step 2.
+4. `pnpm deploy` (or `pnpm preview`).
+5. Smoke-test: `GET /api/tags` returns 7 tags, and `GET /api/facilities?withPrescription=true` returns `meta.total` reflecting the filter.
 
 ## Workflow notes
 

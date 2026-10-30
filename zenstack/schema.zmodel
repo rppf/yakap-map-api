@@ -8,8 +8,9 @@ plugin policy {
 }
 
 // Aligned with the existing `health_facilities` table in Neon (see prisma db pull).
-// The PostGIS `coordinates` geography column is not queryable via Prisma — use the
-// plain longitude/latitude columns for geo filtering instead.
+// The PostGIS `coordinates` geography column is not queryable via Prisma — the
+// plain longitude/latitude columns are retained in the DB so no data is lost, but
+// they no longer drive list queries (the API is tag-based, not map-based).
 model HealthFacility {
     id                    BigInt   @id @default(autoincrement())
     name                  String   @map('health_facility_name') @db.VarChar(255)
@@ -27,8 +28,39 @@ model HealthFacility {
     latitude              Float?   @db.Real
     contactNumbers        String?  @map('contact_numbers')
 
+    facilityTags FacilityTag[]
+
     // Public read-only API: allow reads to everyone, deny all writes.
     @@allow('read', true)
 
     @@map('health_facilities')
+}
+
+model Tag {
+    id          BigInt  @id @default(autoincrement())
+    name        String  @db.VarChar(100)
+    slug        String  @unique @db.VarChar(100)
+    description String?
+
+    facilityTags FacilityTag[]
+
+    // Public read-only API: allow reads to everyone, deny all writes.
+    @@allow('read', true)
+
+    @@map('tags')
+}
+
+model FacilityTag {
+    facilityId BigInt @map('facility_id')
+    tagId      BigInt @map('tag_id')
+
+    facility HealthFacility @relation(fields: [facilityId], references: [id])
+    tag      Tag            @relation(fields: [tagId], references: [id])
+
+    @@id([facilityId, tagId])
+
+    // Public read-only API: allow reads to everyone, deny all writes.
+    @@allow('read', true)
+
+    @@map('facility_tags')
 }
